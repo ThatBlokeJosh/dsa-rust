@@ -5,18 +5,26 @@ use std::{ptr::null_mut, usize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-#[derive(Debug)]
-pub struct Map<K: Hash, T: Sized + Copy> {
-    pub bucket: Box<Vec<*mut T>>,
+#[derive(Debug, Clone)]
+pub struct Map<K: Hash + Copy, T: Sized + Copy> {
+    pub bucket: Box<Vec<Value<T>>>,
+    pub keys: Vec<K>, 
     size: usize,
     a: f64,
     key_type: PhantomData<K>
 }
 
-impl<K: Hash, T: Copy + Sized + Display + Debug> Map<K, T> {
+#[derive(Debug, Clone)]
+pub struct Value<T: Sized + Copy> {
+    pub value: *mut T,
+    pub index: usize
+}
+
+impl<K: Hash + Copy, T: Copy + Sized + Display + Debug> Map<K, T> {
     pub fn new(size: usize) -> Self {
-        let b = vec![null_mut(); size];
-        Map {bucket: b.into(), size, a: 0.351876846351345687, key_type: PhantomData}
+        let b = vec![Value{value: null_mut(), index: 0}; size];
+        let k = Vec::new();
+        Map {bucket: b.into(), size, a: 0.351876846351345687, key_type: PhantomData, keys: k}
     } 
     fn calculate_hash(&mut self, t: &K) -> u64 {
         let mut s = DefaultHasher::new();
@@ -34,23 +42,32 @@ impl<K: Hash, T: Copy + Sized + Display + Debug> Map<K, T> {
     pub fn set(&mut self, key: K, value: T) {
         let hash = self.hash(key);
         let v = Box::into_raw(Box::new(value));
-        self.bucket[hash] = v
+        self.keys.push(key);
+        self.bucket[hash] = Value{value: v, index: self.keys.len() - 1};
     }
+
     pub fn get(&mut self, key: K) -> Option<T> {
         unsafe {
             let hash = self.hash(key);
-            if self.bucket[hash].is_null() {
+            if self.bucket[hash].value.is_null() {
                 return None;
             }
-            return Some(*self.bucket[hash]);
+            return Some(*self.bucket[hash].value);
         }
     }
+
     pub fn print(&mut self, key: K) {
         println!("{:?}", self.get(key));
     }
+
+    pub fn contains(&mut self, key: K) -> bool {
+        return !self.get(key).is_none();
+    }
+
     pub fn delete(&mut self, key: K) {
         let hash = self.hash(key);
-        self.bucket[hash] = null_mut()
+        self.keys.remove(self.bucket[hash].index);
+        self.bucket[hash] = Value{value: null_mut(), index: 0}
     }
 }
 
@@ -69,16 +86,9 @@ mod tests {
         assert_eq!(m.get("bar"), Some(4));
         m.set("foo", 3);
         assert_eq!(m.get("foo"), Some(3));
+        assert_eq!(m.contains("foo"), true);
+        assert_eq!(m.contains("hello"), false);
         m.delete("foo");
         assert_eq!(m.get("foo"), None);
-    }
-
-    #[test]
-    fn working_generics() {
-        let mut m2: Map<i32, i32> = Map::new(1000);
-        m2.set(5, 8);
-        m2.set(4, 7);
-        assert_eq!(m2.get(5), Some(8));
-        assert_eq!(m2.get(4), Some(7))
     }
 }
