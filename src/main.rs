@@ -6,6 +6,7 @@ mod llist;
 mod graph;
 mod bst;
 mod hmap;
+mod bs;
 
 fn main() {
     let mut g: Graph<i32> = Graph::new();
