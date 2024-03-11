@@ -39,6 +39,7 @@ impl<K: Hash + Copy, T: Copy + Sized + Display + Debug> Map<K, T> {
         out = out * self.size as f64;
         return out.round() as usize;
     }
+
     pub fn set(&mut self, key: K, value: T) {
         let hash = self.hash(key);
         let v = Box::into_raw(Box::new(value));

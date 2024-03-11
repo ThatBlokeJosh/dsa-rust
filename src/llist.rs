@@ -53,6 +53,24 @@ impl<T: Display> List<T> {
         }
     }
 
+    pub fn insert(&mut self, v: T) {
+        let new_node = Box::into_raw(Box::new(Node {
+            value: v,
+            next: self.head,
+        }));
+        self.head = new_node
+    }
+
+    pub fn unshift(&mut self) {
+        unsafe {
+            self.head = (*(*self).head).next
+        }
+    }
+
+    pub fn empty(&mut self) -> bool {
+        return self.head.is_null();
+    }
+
     pub fn print(&mut self) {
         unsafe {
             if self.head.is_null() {
